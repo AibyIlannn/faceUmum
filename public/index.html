@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Absensi Face Recognition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1E1E1E;
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Bubble Effects */
+        .bubble {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.3;
+            z-index: 0;
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        .bubble1 {
+            top: 10%;
+            left: 5%;
+            width: 250px;
+            height: 250px;
+            background: rgba(59, 130, 246, 0.4);
+        }
+
+        .bubble2 {
+            bottom: 10%;
+            right: 5%;
+            width: 400px;
+            height: 400px;
+            background: rgba(37, 99, 235, 0.3);
+            animation-delay: 1s;
+        }
+
+        .bubble3 {
+            top: 50%;
+            left: 50%;
+            width: 300px;
+            height: 300px;
+            background: rgba(96, 165, 250, 0.2);
+            animation-delay: 0.5s;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.1); opacity: 0.5; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .header-title h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(to right, #60A5FA, #3B82F6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .icon-camera {
+            width: 40px;
+            height: 40px;
+            color: #3B82F6;
+        }
+
+        .header p {
+            color: #9CA3AF;
+        }
+
+        /* Loading */
+        .loading-container {
+            background: rgba(31, 41, 55, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            border: 1px solid rgba(75, 85, 99, 0.5);
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #3B82F6;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #374151;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #3B82F6;
+            transition: width 0.3s;
+            border-radius: 10px;
+        }
+
+        /* Grid Layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Card */
+        .card {
+            background: rgba(31, 41, 55, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            border: 1px solid rgba(75, 85, 99, 0.5);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Camera Section */
+        .camera-container {
+            position: relative;
+            background: #000;
+            border-radius: 1rem;
+            overflow: hidden;
+            aspect-ratio: 16/9;
+        }
+
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .camera-placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(17, 24, 39, 0.8);
+        }
+
+        .camera-placeholder svg {
+            width: 64px;
+            height: 64px;
+            color: #4B5563;
+            margin-bottom: 1rem;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #3B82F6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563EB;
+        }
+
+        .btn-danger {
+            background: #DC2626;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #B91C1C;
+        }
+
+        .btn-success {
+            background: #059669;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #047857;
+        }
+
+        /* Detection Result */
+        .detection-result {
+            margin-top: 1rem;
+            background: linear-gradient(to right, rgba(5, 150, 105, 0.2), rgba(59, 130, 246, 0.2));
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 1rem;
+            padding: 1rem;
+            display: none;
+        }
+
+        .detection-result.show {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .detection-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .detection-info svg {
+            width: 32px;
+            height: 32px;
+            color: #10B981;
+        }
+
+        /* Members List */
+        .members-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .member-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(55, 65, 81, 0.3);
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+        }
+
+        .member-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3B82F6, #1E40AF);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.25rem;
+        }
+
+        /* Stats */
+        .stats-card {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(30, 64, 175, 0.2));
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #60A5FA;
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 1rem;
+            color: #9CA3AF;
+            border-bottom: 1px solid #374151;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(55, 65, 81, 0.5);
+        }
+
+        tr:hover {
+            background: rgba(55, 65, 81, 0.2);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: rgba(5, 150, 105, 0.2);
+            color: #10B981;
+        }
+
+        .confidence-score {
+            color: #60A5FA;
+            font-weight: 600;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Icons */
+        svg {
+            width: 20px;
+            height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="bubble bubble1"></div>
+    <div class="bubble bubble2"></div>
+    <div class="bubble bubble3"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-title">
+                <svg class="icon-camera" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                <h1>Sistem Absensi Face Recognition</h1>
+            </div>
+            <p>Absensi otomatis menggunakan teknologi pengenalan wajah</p>
+        </div>
+
+        <!-- Loading -->
+        <div id="loadingContainer" class="loading-container">
+            <div class="spinner"></div>
+            <p style="margin-bottom: 0.5rem;">Loading Face Recognition Models...</p>
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+            </div>
+            <p id="progressText" style="margin-top: 0.5rem; color: #9CA3AF;">0%</p>
+        </div>
+
+        <!-- Main Content -->
+        <div id="mainContent" class="hidden">
+            <div class="main-grid">
+                <!-- Camera Section -->
+                <div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                </svg>
+                                Kamera Real-time
+                            </h2>
+                            <div>
+                                <button id="startBtn" class="btn btn-primary">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                    </svg>
+                                    Aktifkan Kamera
+                                </button>
+                                <button id="stopBtn" class="btn btn-danger hidden">Stop Kamera</button>
+                            </div>
+                        </div>
+
+                        <div class="camera-container">
+                            <video id="video" autoplay playsinline muted></video>
+                            <canvas id="canvas"></canvas>
+                            <div id="cameraPlaceholder" class="camera-placeholder">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                </svg>
+                                <p style="color: #9CA3AF;">Kamera belum aktif</p>
+                            </div>
+                        </div>
+
+                        <!-- Detection Result -->
+                        <div id="detectionResult" class="detection-result">
+                            <div class="detection-info">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <div>
+                                    <p style="font-size: 1.125rem; font-weight: 600; color: #10B981;">Wajah Terdeteksi!</p>
+                                    <p id="detectionText" style="color: #E5E7EB;"></p>
+                                </div>
+                            </div>
+                            <button id="recordBtn" class="btn btn-success">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                                Rekam Absensi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar -->
+                <div>
+                    <!-- Members -->
+                    <div class="card" style="margin-bottom: 1.5rem;">
+                        <h3 class="card-title">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                            </svg>
+                            Anggota Terdaftar
+                        </h3>
+                        <div id="membersList" class="members-list"></div>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="card stats-card">
+                        <h3 class="card-title">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            Statistik Hari Ini
+                        </h3>
+                        <div style="margin-top: 1rem;">
+                            <div class="stat-row">
+                                <span style="color: #9CA3AF;">Total Hadir</span>
+                                <span id="totalAttendance" class="stat-value">0</span>
+                            </div>
+                            <div class="stat-row">
+                                <span style="color: #9CA3AF;">Total Anggota</span>
+                                <span id="totalMembers" class="stat-value">3</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Log -->
+            <div id="attendanceLogContainer" class="card hidden">
+                <h3 class="card-title">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Log Kehadiran
+                </h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Nama</th>
+                                <th>Waktu</th>
+                                <th>Tanggal</th>
+                                <th>Confidence</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let isModelLoaded = false;
+        let isCameraActive = false;
+        let stream = null;
+        let detectionInterval = null;
+        let isProcessing = false;
+        let currentDetection = null;
+        let attendanceLog = [];
+
+        // Registered Members
+        const registeredFaces = [
+            { id: 1, name: 'Sulton', image: 'anggota/sulton.jpg', descriptor: 'face_descriptor_sulton' },
+            { id: 2, name: 'ilan', image: 'anggota/ilan.jpg', descriptor: 'face_descriptor_ahmad' },
+            { id: 3, name: 'Budi', image: 'budi.jpg', descriptor: 'face_descriptor_budi' }
+        ];
+
+        // Elements
+        const loadingContainer = document.getElementById('loadingContainer');
+        const mainContent = document.getElementById('mainContent');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const detectionResult = document.getElementById('detectionResult');
+        const detectionText = document.getElementById('detectionText');
+        const recordBtn = document.getElementById('recordBtn');
+        const membersList = document.getElementById('membersList');
+        const totalAttendance = document.getElementById('totalAttendance');
+        const totalMembers = document.getElementById('totalMembers');
+        const attendanceLogContainer = document.getElementById('attendanceLogContainer');
+        const attendanceTableBody = document.getElementById('attendanceTableBody');
+
+        // Initialize
+        async function init() {
+            await loadModels();
+            renderMembers();
+            updateStats();
+        }
+
+        // Load Models (Simulated)
+        async function loadModels() {
+            const steps = [0, 20, 50, 80, 100];
+            for (let i = 0; i < steps.length; i++) {
+                await sleep(500);
+                progressFill.style.width = steps[i] + '%';
+                progressText.textContent = steps[i] + '%';
+            }
+            
+            isModelLoaded = true;
+            loadingContainer.classList.add('hidden');
+            mainContent.classList.remove('hidden');
+        }
+
+        // Render Members
+        function renderMembers() {
+            membersList.innerHTML = registeredFaces.map(person => `
+                <div class="member-item">
+                    <div class="member-avatar">${person.name.charAt(0)}</div>
+                    <div>
+                        <p style="font-weight: 600;">${person.name}</p>
+                        <p style="font-size: 0.75rem; color: #9CA3AF;">${person.image}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Update Stats
+        function updateStats() {
+            totalAttendance.textContent = attendanceLog.length;
+            totalMembers.textContent = registeredFaces.length;
+        }
+
+        // Start Camera
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        facingMode: 'user',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                });
+                
+                video.srcObject = stream;
+                isCameraActive = true;
+                
+                video.onloadedmetadata = () => {
+                    cameraPlaceholder.style.display = 'none';
+                    startBtn.classList.add('hidden');
+                    stopBtn.classList.remove('hidden');
+                    startDetection();
+                };
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                alert('Tidak dapat mengakses kamera. Pastikan izin kamera telah diberikan.');
+            }
+        }
+
+        // Stop Camera
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            video.srcObject = null;
+            if (detectionInterval) {
+                clearInterval(detectionInterval);
+            }
+            isCameraActive = false;
+            cameraPlaceholder.style.display = 'flex';
+            startBtn.classList.remove('hidden');
+            stopBtn.classList.add('hidden');
+            detectionResult.classList.remove('show');
+        }
+
+        // Start Detection
+        function startDetection() {
+            detectionInterval = setInterval(() => {
+                detectFace();
+            }, 1000);
+        }
+
+        // Detect Face
+        async function detectFace() {
+            if (!video || isProcessing) return;
+            
+            isProcessing = true;
+            await sleep(300);
+            
+            const ctx = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            
+            // Simulasi face detection
+            const random = Math.random();
+            
+            if (random > 0.3) {
+                // Simulasi face match
+                const matchedPerson = registeredFaces[Math.floor(Math.random() * registeredFaces.length)];
+                const confidence = 0.85 + Math.random() * 0.14;
+                
+                currentDetection = {
+                    detected: true,
+                    name: matchedPerson.name,
+                    confidence: confidence,
+                    timestamp: new Date()
+                };
+                
+                // Draw rectangle
+                ctx.strokeStyle = '#3B82F6';
+                ctx.lineWidth = 3;
+                const x = canvas.width * 0.3;
+                const y = canvas.height * 0.2;
+                const w = canvas.width * 0.4;
+                const h = canvas.height * 0.5;
+                ctx.strokeRect(x, y, w, h);
+                
+                // Draw label
+                ctx.fillStyle = '#3B82F6';
+                ctx.fillRect(x, y - 30, w, 30);
+                ctx.fillStyle = '#fff';
+                ctx.font = '16px Arial';
+                ctx.fillText(`${matchedPerson.name} (${(confidence * 100).toFixed(1)}%)`, x + 5, y - 10);
+                
+                // Show detection result
+                detectionText.innerHTML = `<span style="font-weight: bold;">${matchedPerson.name}</span> - Confidence: ${(confidence * 100).toFixed(1)}%`;
+                detectionResult.classList.add('show');
+            } else {
+                detectionResult.classList.remove('show');
+                currentDetection = null;
+            }
+            
+            isProcessing = false;
+        }
+
+        // Record Attendance
+        function recordAttendance() {
+            if (currentDetection && currentDetection.detected) {
+                const newRecord = {
+                    id: Date.now(),
+                    name: currentDetection.name,
+                    timestamp: new Date(),
+                    confidence: currentDetection.confidence,
+                    status: 'Hadir'
+                };
+                
+                attendanceLog.unshift(newRecord);
+                updateStats();
+                renderAttendanceLog();
+                
+                // Show success feedback
+                alert(`Absensi berhasil dicatat untuk ${currentDetection.name}!`);
+                
+                // Reset detection
+                setTimeout(() => {
+                    detectionResult.classList.remove('show');
+                    currentDetection = null;
+                }, 2000);
+            }
+        }
+
+        // Render Attendance Log
+        function renderAttendanceLog() {
+            if (attendanceLog.length > 0) {
+                attendanceLogContainer.classList.remove('hidden');
+                attendanceTableBody.innerHTML = attendanceLog.map((record, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td style="font-weight: 600;">${record.name}</td>
+                        <td>${formatTime(record.timestamp)}</td>
+                        <td style="font-size: 0.875rem; color: #9CA3AF;">${formatDate(record.timestamp)}</td>
+                        <td><span class="confidence-score">${(record.confidence * 100).toFixed(1)}%</span></td>
+                        <td><span class="badge badge-success">${record.status}</span></td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        // Utilities
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function formatTime(date) {
+            return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+        function formatDate(date) {
+            return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
+        // Event Listeners
+        startBtn.addEventListener('click', startCamera);
+        stopBtn.addEventListener('click', stopCamera);
+        recordBtn.addEventListener('click', recordAttendance);
+
+        // Initialize App
+        init();
+    </script>
+</body>
+</html>
